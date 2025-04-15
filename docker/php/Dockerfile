@@ -1,4 +1,4 @@
-FROM php:8.1.23-fpm-bookworm
+FROM php:8.3-fpm-bullseye
 
 RUN apt-get update
 
@@ -43,5 +43,7 @@ RUN pecl install imagick-3.7.0 && docker-php-ext-enable imagick
 
 RUN adduser app
 USER app
+
+WORKDIR /app
 
 CMD ["php-fpm"]
