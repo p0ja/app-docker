@@ -13,11 +13,25 @@ Optional services via Docker Compose profiles:
 - `mailpit` (`mail`, `tools`): local SMTP catcher and email preview UI
 - `adminer` (`tools`): lightweight database administration UI
 
+## Intended use and scope
+Best suited for:
+- PHP-FPM web applications
+- Nginx-based local development
+- front-controller apps with a configurable public document root
+- projects that may optionally use MariaDB, Redis, Adminer, and Mailpit in development
+
+Less suitable without modification for:
+- Apache-based apps
+- PostgreSQL-first projects
+- apps with highly custom web server rules
+- non-standard PHP project layouts
+
 ## Reusability strategy
 This repo is designed to be adaptable across different PHP applications by:
 - keeping the base stack minimal (`web` + `php`)
 - making extra dev services optional through Compose profiles
 - making the Nginx document root configurable with `APP_DOCUMENT_ROOT`
+- providing multiple Nginx template examples
 - making optional PHP extensions configurable through build args and `.env`
 
 ## Architecture and request flow
@@ -112,6 +126,13 @@ make logs
 make reset
 ```
 
+## Validation checklist
+- Base stack boots successfully.
+- Optional `db` profile boots successfully.
+- Optional full stack boots successfully.
+- `APP_DOCUMENT_ROOT` is adjusted correctly for the current application.
+- Appropriate Nginx template is selected for the project type.
+
 ## Persistent storage
 MariaDB data is stored in the named Docker volume:
 - `mysql_data`
@@ -126,6 +147,7 @@ docker compose down -v
 - `docker-compose.yml` uses environment-variable substitution with fallback defaults.
 - Docker Compose auto-loads `.env`; `.env-dist` is only a template and should be copied to `.env`.
 - Nginx config is templated through `docker/conf.d/nginx.conf.template`.
+- Additional Nginx examples are stored under `docker/conf.d/examples/`.
 - The default document root is `/app/public`, but it can be changed with `APP_DOCUMENT_ROOT`.
 - PHP always includes `pdo`, `pdo_mysql`, `mysqli`, `bcmath`, `exif`, `gd`, `intl`, and `zip`.
 - `xdebug` and `imagick` are optional and controlled by build args.
@@ -140,4 +162,6 @@ docker compose down -v
 - Converted the stack toward reusable-starter behavior.
 - Made extra dev services optional through Compose profiles.
 - Replaced fixed Nginx config with a configurable template.
+- Added Nginx examples for multiple app styles.
 - Simplified the PHP image baseline and made `xdebug`/`imagick` optional.
+- Added a validation checklist and clearer starter scope documentation.

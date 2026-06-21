@@ -25,8 +25,17 @@ docker compose exec php env | grep -E 'DB_|REDIS_|SMTP_'
 Check:
 - `docker compose logs web php`
 - nginx template in `docker/conf.d/nginx.conf.template`
+- example templates in `docker/conf.d/examples/`
 - whether `APP_DOCUMENT_ROOT` matches the actual app public directory
 - whether PHP is running correctly
+
+### App routes do not work
+If the app is not a front-controller app, the default Nginx template may be wrong.
+Try replacing it with:
+- `docker/conf.d/examples/nginx.plain-php.conf.template`
+
+If the app does use a front controller, keep or restore:
+- `docker/conf.d/examples/nginx.front-controller.conf.template`
 
 ### App cannot connect to DB
 If using the `db` profile, check:
