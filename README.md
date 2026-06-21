@@ -1,5 +1,19 @@
 # app-docker
 
+## Quick reset and rebuild
+
+Use this sequence to test the full stack from a clean local state:
+
+```bash
+cp .env-dist .env
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
+docker compose ps
+docker compose logs --tail=100 web php mysql
+docker compose config
+```
+
 ## First startup sanity checklist
 
 ### 1. Prepare env file
