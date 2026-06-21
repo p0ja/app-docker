@@ -4,8 +4,8 @@
 
 ```bash
 docker compose ps
-docker compose logs --tail=100 web php mysql
-docker compose exec php env | grep DB_
+docker compose logs --tail=100 web php mysql redis adminer mailpit
+docker compose exec php env | grep -E 'DB_|REDIS_|SMTP_'
 docker compose exec php ls -la /app
 docker compose exec web ls -la /app
 docker compose config
@@ -24,7 +24,13 @@ docker compose up -d --build
 ## Common issues
 
 ### Port already allocated
-Change `WEB_PORT` or `MYSQL_PORT` in `.env`.
+Change one of these in `.env` if needed:
+- `WEB_PORT`
+- `MYSQL_PORT`
+- `REDIS_PORT`
+- `ADMINER_PORT`
+- `MAILPIT_SMTP_PORT`
+- `MAILPIT_UI_PORT`
 
 ### MySQL auth fails
 Old DB volume data may still exist. Reset with:
@@ -40,6 +46,27 @@ Check:
 - `docker compose config`
 - `docker compose logs php mysql`
 - whether the app is using `DB_HOST=mysql`
+
+### App cannot connect to Redis
+Check:
+- `REDIS_HOST=redis`
+- `REDIS_PORT=6379`
+- `docker compose logs redis`
+- whether the PHP app actually has Redis client support configured
+
+### Email is not visible in Mailpit
+Check:
+- `SMTP_HOST=mailpit`
+- `SMTP_PORT=1025`
+- `docker compose logs mailpit`
+- Mailpit UI at `http://localhost:8025`
+
+### Adminer cannot log in
+Try:
+- server: `mysql`
+- username: value of `MYSQL_USER`
+- password: value of `MYSQL_PASSWORD`
+- database: value of `MYSQL_DATABASE`
 
 ### Nginx returns an error page or 502
 Check:

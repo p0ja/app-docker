@@ -1,4 +1,4 @@
-.PHONY: help up build rebuild down reset logs ps config shell-php shell-web mysql-logs
+.PHONY: help up build rebuild down reset logs ps config shell-php shell-web mysql-logs redis-logs mail-logs
 
 help:
 	@echo "Available targets:"
@@ -7,12 +7,14 @@ help:
 	@echo "  rebuild    - Rebuild images without cache and restart"
 	@echo "  down       - Stop containers"
 	@echo "  reset      - Stop containers, remove volumes, rebuild, and start"
-	@echo "  logs       - Show recent logs for web, php, and mysql"
+	@echo "  logs       - Show recent logs for all app services"
 	@echo "  ps         - Show container status"
 	@echo "  config     - Show rendered docker compose config"
 	@echo "  shell-php  - Open a shell in the php container"
 	@echo "  shell-web  - Open a shell in the web container"
 	@echo "  mysql-logs - Show mysql logs"
+	@echo "  redis-logs - Show redis logs"
+	@echo "  mail-logs  - Show mailpit logs"
 
 up:
 	docker compose up -d
@@ -33,7 +35,7 @@ reset:
 	docker compose up -d
 
 logs:
-	docker compose logs --tail=100 web php mysql
+	docker compose logs --tail=100 web php mysql redis adminer mailpit
 
 ps:
 	docker compose ps
@@ -49,3 +51,9 @@ shell-web:
 
 mysql-logs:
 	docker compose logs mysql
+
+redis-logs:
+	docker compose logs redis
+
+mail-logs:
+	docker compose logs mailpit
