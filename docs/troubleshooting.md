@@ -14,8 +14,8 @@ docker compose config
 Full stack with optional services enabled:
 
 ```bash
-docker compose --profile db --profile cache --profile mail --profile tools ps
-docker compose --profile db --profile cache --profile mail --profile tools logs --tail=100 web php mysql redis adminer mailpit
+docker compose --profile db --profile postgres --profile cache --profile mail --profile tools ps
+docker compose --profile db --profile postgres --profile cache --profile mail --profile tools logs --tail=100 web php mysql postgres redis adminer mailpit
 docker compose exec php env | grep -E 'DB_|REDIS_|SMTP_'
 ```
 
@@ -37,12 +37,20 @@ Try replacing it with:
 If the app does use a front controller, keep or restore:
 - `docker/conf.d/examples/nginx.front-controller.conf.template`
 
-### App cannot connect to DB
+### App cannot connect to MariaDB/MySQL
 If using the `db` profile, check:
+- `DB_DRIVER=mysql`
 - `DB_HOST=mysql`
 - `docker compose --profile db logs mysql`
 - `.env`
 - `docker compose config`
+
+### App cannot connect to PostgreSQL
+If using the `postgres` profile, check:
+- `DB_DRIVER=pgsql`
+- `DB_HOST=postgres`
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+- `docker compose --profile postgres logs postgres`
 
 ### App cannot connect to Redis
 If using the `cache` profile, check:
@@ -59,10 +67,9 @@ If using the `mail` profile, check:
 
 ### Adminer cannot log in
 If using the `tools` profile, try:
-- server: `mysql`
-- username: value of `MYSQL_USER`
-- password: value of `MYSQL_PASSWORD`
-- database: value of `MYSQL_DATABASE`
+- server: `mysql` for MariaDB/MySQL
+- server: `postgres` for PostgreSQL
+- username/password/database values from your selected database settings
 
 ### PHP build fails
 Check:

@@ -28,6 +28,7 @@ services:
       DB_NAME: ${DB_NAME:-appname}
       DB_USER: ${DB_USER:-user}
       DB_PASS: ${DB_PASS:-password}
+      DB_DRIVER: ${DB_DRIVER:-mysql}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
@@ -55,6 +56,27 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - appnamenet
+
+  postgres:
+    image: postgres:17-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-appname}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -92,6 +114,7 @@ services:
 
 volumes:
   mysql_data:
+  postgres_data:
 
 networks:
   appnamenet:

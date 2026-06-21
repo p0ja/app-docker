@@ -9,6 +9,7 @@ Base services:
 
 Optional services via Docker Compose profiles:
 - `mysql` (`db`): MariaDB database
+- `postgres` (`postgres`): PostgreSQL database
 - `redis` (`cache`): Redis for cache, sessions, or queues
 - `mailpit` (`mail`, `tools`): local SMTP catcher and email preview UI
 - `adminer` (`tools`): lightweight database administration UI
@@ -18,11 +19,10 @@ Best suited for:
 - PHP-FPM web applications
 - Nginx-based local development
 - front-controller apps with a configurable public document root
-- projects that may optionally use MariaDB, Redis, Adminer, and Mailpit in development
+- projects that may optionally use MariaDB, PostgreSQL, Redis, Adminer, and Mailpit in development
 
 Less suitable without modification for:
 - Apache-based apps
-- PostgreSQL-first projects
 - apps with highly custom web server rules
 - non-standard PHP project layouts
 
@@ -30,6 +30,7 @@ Less suitable without modification for:
 This repo is designed to be adaptable across different PHP applications by:
 - keeping the base stack minimal (`web` + `php`)
 - making extra dev services optional through Compose profiles
+- supporting either MariaDB/MySQL or PostgreSQL in local development
 - making the Nginx document root configurable with `APP_DOCUMENT_ROOT`
 - providing multiple Nginx template examples
 - making optional PHP extensions configurable through build args and `.env`
@@ -49,6 +50,8 @@ WEB_PORT -> nginx (web)
             |
             +----------> MariaDB (optional, db profile)
             |
+            +----------> PostgreSQL (optional, postgres profile)
+            |
             +----------> Mailpit SMTP (optional, mail profile)
 
 Adminer UI <- ADMINER_PORT (optional, tools profile)
@@ -59,6 +62,7 @@ Mailpit UI <- MAILPIT_UI_PORT (optional, tools/mail profile)
 - Nginx: `nginx:1.28-alpine`
 - PHP base image: `php:8.3-fpm-bookworm`
 - MariaDB: `mariadb:11.4`
+- PostgreSQL: `postgres:17-alpine`
 - Redis: `redis:7-alpine`
 - Adminer: `adminer:4`
 - Mailpit: `axllent/mailpit:v1.21`
@@ -73,11 +77,16 @@ Core variables:
 - `WEB_PORT`
 - `SERVER_NAME`
 - `APP_DOCUMENT_ROOT`
+- `DB_DRIVER`
 - `INSTALL_XDEBUG`
 - `INSTALL_IMAGICK`
 
 Optional-service variables:
 - `MYSQL_PORT`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_PORT`
 - `REDIS_HOST`
 - `REDIS_PORT`
 - `ADMINER_PORT`
@@ -102,10 +111,16 @@ cp .env-dist .env
 docker compose up -d --build
 ```
 
-Full stack:
+Full stack with MariaDB:
 
 ```bash
 docker compose --profile db --profile cache --profile mail --profile tools up -d --build
+```
+
+Full stack with PostgreSQL:
+
+```bash
+DB_DRIVER=pgsql DB_HOST=postgres docker compose --profile postgres --profile cache --profile mail --profile tools up -d --build
 ```
 
 Clean rebuild:
@@ -113,7 +128,7 @@ Clean rebuild:
 ```bash
 docker compose down -v
 docker compose build --no-cache
-docker compose --profile db --profile cache --profile mail --profile tools up -d
+docker compose --profile db --profile postgres --profile cache --profile mail --profile tools up -d
 ```
 
 Using the Makefile:
@@ -122,20 +137,23 @@ Using the Makefile:
 make build
 make up
 make full-up
+make postgres-up
 make logs
 make reset
 ```
 
 ## Validation checklist
 - Base stack boots successfully.
-- Optional `db` profile boots successfully.
+- Optional `db` profile boots successfully when using MariaDB/MySQL.
+- Optional `postgres` profile boots successfully when using PostgreSQL.
 - Optional full stack boots successfully.
 - `APP_DOCUMENT_ROOT` is adjusted correctly for the current application.
 - Appropriate Nginx template is selected for the project type.
 
 ## Persistent storage
-MariaDB data is stored in the named Docker volume:
+Database data is stored in named Docker volumes:
 - `mysql_data`
+- `postgres_data`
 
 If database initialization scripts should re-run, remove volumes first:
 
@@ -150,17 +168,20 @@ docker compose down -v
 - Additional Nginx examples are stored under `docker/conf.d/examples/`.
 - The default document root is `/app/public`, but it can be changed with `APP_DOCUMENT_ROOT`.
 - PHP always includes `pdo`, `pdo_mysql`, `mysqli`, `bcmath`, `exif`, `gd`, `intl`, and `zip`.
+- PostgreSQL support at the container level is provided through the optional `postgres` service, but app-level PHP PostgreSQL extensions may still be needed depending on the application.
 - `xdebug` and `imagick` are optional and controlled by build args.
 - Redis, Adminer, and Mailpit are development conveniences and not required for every project.
 
 ## Known caveats
 - Projects with unusual routing or non-front-controller layouts may still need a custom Nginx template.
-- MariaDB version upgrades may require a local volume reset during development.
+- MariaDB or PostgreSQL version upgrades may require a local volume reset during development.
 - Optional PECL extension builds may fail if upstream dependencies change.
+- If a PHP application needs native PostgreSQL drivers, the PHP image may need `pdo_pgsql` and `pgsql` enabled.
 
 ## Completed improvements
 - Converted the stack toward reusable-starter behavior.
 - Made extra dev services optional through Compose profiles.
+- Added PostgreSQL as an optional profile.
 - Replaced fixed Nginx config with a configurable template.
 - Added Nginx examples for multiple app styles.
 - Simplified the PHP image baseline and made `xdebug`/`imagick` optional.
