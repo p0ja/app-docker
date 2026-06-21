@@ -50,7 +50,12 @@ If using the `postgres` profile, check:
 - `DB_DRIVER=pgsql`
 - `DB_HOST=postgres`
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+- `INSTALL_PGSQL=true` if the PHP app requires native PostgreSQL extensions
 - `docker compose --profile postgres logs postgres`
+- rebuild after enabling PostgreSQL extensions:
+  ```bash
+  docker compose build --no-cache
+  ```
 
 ### App cannot connect to Redis
 If using the `cache` profile, check:
@@ -73,6 +78,7 @@ If using the `tools` profile, try:
 
 ### PHP build fails
 Check:
-- whether `INSTALL_XDEBUG` or `INSTALL_IMAGICK` is enabled
+- whether `INSTALL_XDEBUG`, `INSTALL_IMAGICK`, or `INSTALL_PGSQL` is enabled
 - `docker compose build --no-cache`
 - PECL output for failing optional extensions
+- package installation output for PostgreSQL development libraries if `INSTALL_PGSQL=true`

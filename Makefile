@@ -10,7 +10,7 @@ help:
 	@echo "  down          - Stop containers"
 	@echo "  reset         - Stop containers, remove volumes, rebuild, and start all profiles"
 	@echo "  logs          - Show recent logs for base stack"
-	@echo "  full-logs     - Show recent logs for stack including MariaDB"
+	@echo "  full-logs     - Show recent logs for stack including MariaDB/PostgreSQL"
 	@echo "  ps            - Show container status"
 	@echo "  config        - Show rendered docker compose config"
 	@echo "  shell-php     - Open a shell in the php container"
@@ -27,7 +27,7 @@ full-up:
 	docker compose --profile db --profile cache --profile mail --profile tools up -d
 
 postgres-up:
-	DB_DRIVER=pgsql DB_HOST=postgres docker compose --profile postgres --profile cache --profile mail --profile tools up -d
+	INSTALL_PGSQL=true DB_DRIVER=pgsql DB_HOST=postgres docker compose --profile postgres --profile cache --profile mail --profile tools up -d
 
 build:
 	docker compose build

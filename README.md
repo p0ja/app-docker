@@ -15,6 +15,28 @@ This starter may need adjustment for:
 - projects using **Apache** instead of Nginx
 - projects with unusual directory layouts or deployment assumptions
 
+## Database modes
+This starter supports two common database modes:
+
+### MySQL / MariaDB mode
+Use:
+- `DB_DRIVER=mysql`
+- `DB_HOST=mysql`
+- Compose profile: `db`
+
+### PostgreSQL mode
+Use:
+- `DB_DRIVER=pgsql`
+- `DB_HOST=postgres`
+- `INSTALL_PGSQL=true`
+- Compose profile: `postgres`
+
+If your PHP application needs native PostgreSQL support, enable PostgreSQL extensions during build with:
+
+```env
+INSTALL_PGSQL=true
+```
+
 ## Default services
 - **web**: Nginx
 - **php**: custom PHP-FPM image
@@ -105,9 +127,9 @@ docker compose config
 2. Copy `.env-dist` to `.env`.
 3. Set `APP_DOCUMENT_ROOT` to match your app.
 4. Choose the Compose profiles you need.
-5. Choose the database settings that match your app:
-   - MariaDB/MySQL: `DB_DRIVER=mysql`, `DB_HOST=mysql`
-   - PostgreSQL: `DB_DRIVER=pgsql`, `DB_HOST=postgres`
+5. Choose the database mode that matches your app:
+   - MariaDB/MySQL mode: `DB_DRIVER=mysql`, `DB_HOST=mysql`
+   - PostgreSQL mode: `DB_DRIVER=pgsql`, `DB_HOST=postgres`, `INSTALL_PGSQL=true`
 6. Enable optional PHP features if needed:
    - `INSTALL_XDEBUG=true`
    - `INSTALL_IMAGICK=true`
@@ -139,8 +161,11 @@ docker compose --profile db logs --tail=100 web php mysql
 
 ### PostgreSQL profile
 ```bash
+cp .env-dist .env
+# then set DB_DRIVER=pgsql, DB_HOST=postgres, INSTALL_PGSQL=true
 docker compose down -v
-docker compose --profile postgres up -d --build
+docker compose build --no-cache
+docker compose --profile postgres up -d
 docker compose --profile postgres ps
 docker compose --profile postgres logs --tail=100 web php postgres
 ```

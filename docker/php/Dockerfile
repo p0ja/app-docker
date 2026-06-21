@@ -2,6 +2,7 @@ FROM php:8.3-fpm-bookworm
 
 ARG INSTALL_XDEBUG=false
 ARG INSTALL_IMAGICK=false
+ARG INSTALL_PGSQL=false
 
 RUN set -eux; \
     apt-get update; \
@@ -17,6 +18,9 @@ RUN set -eux; \
     if [ "$INSTALL_IMAGICK" = "true" ]; then \
         apt-get install -y --no-install-recommends libmagickwand-dev; \
     fi; \
+    if [ "$INSTALL_PGSQL" = "true" ]; then \
+        apt-get install -y --no-install-recommends libpq-dev; \
+    fi; \
     rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-configure gd \
@@ -24,7 +28,8 @@ RUN docker-php-ext-configure gd \
         --with-jpeg \
         --with-webp
 
-RUN docker-php-ext-install -j "$(nproc)" \
+RUN set -eux; \
+    docker-php-ext-install -j "$(nproc)" \
         pdo \
         pdo_mysql \
         mysqli \
@@ -32,7 +37,10 @@ RUN docker-php-ext-install -j "$(nproc)" \
         exif \
         gd \
         intl \
-        zip
+        zip; \
+    if [ "$INSTALL_PGSQL" = "true" ]; then \
+        docker-php-ext-install -j "$(nproc)" pdo_pgsql pgsql; \
+    fi
 
 RUN set -eux; \
     docker-php-ext-enable opcache; \

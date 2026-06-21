@@ -35,6 +35,24 @@ This repo is designed to be adaptable across different PHP applications by:
 - providing multiple Nginx template examples
 - making optional PHP extensions configurable through build args and `.env`
 
+## Database modes
+### MariaDB/MySQL mode
+Recommended settings:
+- `DB_DRIVER=mysql`
+- `DB_HOST=mysql`
+- use Compose profile: `db`
+
+### PostgreSQL mode
+Recommended settings:
+- `DB_DRIVER=pgsql`
+- `DB_HOST=postgres`
+- `INSTALL_PGSQL=true`
+- use Compose profile: `postgres`
+
+If the application requires PHP PostgreSQL drivers, the PHP image can now install:
+- `pdo_pgsql`
+- `pgsql`
+
 ## Architecture and request flow
 
 ```text
@@ -80,6 +98,7 @@ Core variables:
 - `DB_DRIVER`
 - `INSTALL_XDEBUG`
 - `INSTALL_IMAGICK`
+- `INSTALL_PGSQL`
 
 Optional-service variables:
 - `MYSQL_PORT`
@@ -120,7 +139,7 @@ docker compose --profile db --profile cache --profile mail --profile tools up -d
 Full stack with PostgreSQL:
 
 ```bash
-DB_DRIVER=pgsql DB_HOST=postgres docker compose --profile postgres --profile cache --profile mail --profile tools up -d --build
+INSTALL_PGSQL=true DB_DRIVER=pgsql DB_HOST=postgres docker compose --profile postgres --profile cache --profile mail --profile tools up -d --build
 ```
 
 Clean rebuild:
@@ -168,20 +187,20 @@ docker compose down -v
 - Additional Nginx examples are stored under `docker/conf.d/examples/`.
 - The default document root is `/app/public`, but it can be changed with `APP_DOCUMENT_ROOT`.
 - PHP always includes `pdo`, `pdo_mysql`, `mysqli`, `bcmath`, `exif`, `gd`, `intl`, and `zip`.
-- PostgreSQL support at the container level is provided through the optional `postgres` service, but app-level PHP PostgreSQL extensions may still be needed depending on the application.
+- If `INSTALL_PGSQL=true`, the PHP image also installs `pdo_pgsql` and `pgsql`.
 - `xdebug` and `imagick` are optional and controlled by build args.
 - Redis, Adminer, and Mailpit are development conveniences and not required for every project.
 
 ## Known caveats
 - Projects with unusual routing or non-front-controller layouts may still need a custom Nginx template.
 - MariaDB or PostgreSQL version upgrades may require a local volume reset during development.
-- Optional PECL extension builds may fail if upstream dependencies change.
-- If a PHP application needs native PostgreSQL drivers, the PHP image may need `pdo_pgsql` and `pgsql` enabled.
+- Optional PECL or DB-related extension builds may fail if upstream dependencies change.
 
 ## Completed improvements
 - Converted the stack toward reusable-starter behavior.
 - Made extra dev services optional through Compose profiles.
 - Added PostgreSQL as an optional profile.
+- Added optional PHP PostgreSQL extensions.
 - Replaced fixed Nginx config with a configurable template.
 - Added Nginx examples for multiple app styles.
 - Simplified the PHP image baseline and made `xdebug`/`imagick` optional.
