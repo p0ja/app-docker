@@ -2,7 +2,7 @@ services:
   web:
     image: nginx:1.25.2-alpine3.18
     ports:
-      - "8888:80"
+      - "${WEB_PORT:-8888}:80"
     volumes:
       - ./docker/conf.d:/etc/nginx/conf.d:ro
       - ./app:/app
@@ -17,10 +17,10 @@ services:
       context: .
       dockerfile: ./docker/php/Dockerfile
     environment:
-      DB_HOST: mysql
-      DB_NAME: appname
-      DB_USER: user
-      DB_PASS: password
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_NAME: ${DB_NAME:-appname}
+      DB_USER: ${DB_USER:-user}
+      DB_PASS: ${DB_PASS:-password}
     volumes:
       - ./app:/app
     depends_on:
@@ -32,16 +32,16 @@ services:
   mysql:
     image: mariadb:11.1.2-jammy
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
-      MYSQL_DATABASE: appname
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_USER: ${MYSQL_USER:-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-appname}
     volumes:
       - ./docker/db/config:/etc/mysql/conf.d:ro
       - ./docker/db:/docker-entrypoint-initdb.d:ro
       - mysql_data:/var/lib/mysql
     ports:
-      - "3325:3306"
+      - "${MYSQL_PORT:-3325}:3306"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD"]
