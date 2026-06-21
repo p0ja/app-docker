@@ -4,8 +4,12 @@ services:
     ports:
       - "${WEB_PORT:-8888}:80"
     volumes:
-      - ./docker/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/conf.d/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./app:/app
+    environment:
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
+      APP_DOCUMENT_ROOT: ${APP_DOCUMENT_ROOT:-/app/public}
+      SERVER_NAME: ${SERVER_NAME:-localhost}
     depends_on:
       - php
     restart: unless-stopped
@@ -16,6 +20,9 @@ services:
     build:
       context: .
       dockerfile: ./docker/php/Dockerfile
+      args:
+        INSTALL_XDEBUG: ${INSTALL_XDEBUG:-false}
+        INSTALL_IMAGICK: ${INSTALL_IMAGICK:-false}
     environment:
       DB_HOST: ${DB_HOST:-mysql}
       DB_NAME: ${DB_NAME:-appname}
@@ -25,18 +32,15 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
       SMTP_PORT: ${SMTP_PORT:-1025}
+    restart: unless-stopped
     volumes:
       - ./app:/app
-    depends_on:
-      - mysql
-      - redis
-      - mailpit
-    restart: unless-stopped
     networks:
       - appnamenet
 
   mysql:
     image: mariadb:11.4
+    profiles: ["db"]
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
       MYSQL_USER: ${MYSQL_USER:-user}
@@ -60,6 +64,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    profiles: ["cache"]
     ports:
       - "${REDIS_PORT:-6379}:6379"
     restart: unless-stopped
@@ -68,16 +73,16 @@ services:
 
   adminer:
     image: adminer:4
+    profiles: ["tools"]
     ports:
       - "${ADMINER_PORT:-8080}:8080"
-    depends_on:
-      - mysql
     restart: unless-stopped
     networks:
       - appnamenet
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.21
+    profiles: ["mail", "tools"]
     ports:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_UI_PORT:-8025}:8025"

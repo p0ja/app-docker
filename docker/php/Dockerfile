@@ -1,15 +1,22 @@
 FROM php:8.3-fpm-bookworm
 
+ARG INSTALL_XDEBUG=false
+ARG INSTALL_IMAGICK=false
+
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         libfreetype6-dev \
         libicu-dev \
         libjpeg62-turbo-dev \
-        libmagickwand-dev \
         libpng-dev \
         libwebp-dev \
-        libzip-dev; \
+        libzip-dev \
+        unzip \
+        git; \
+    if [ "$INSTALL_IMAGICK" = "true" ]; then \
+        apt-get install -y --no-install-recommends libmagickwand-dev; \
+    fi; \
     rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-configure gd \
@@ -37,11 +44,13 @@ RUN set -eux; \
         echo 'opcache.fast_shutdown=1'; \
     } > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
-
-RUN pecl install imagick-3.7.0 \
-    && docker-php-ext-enable imagick
+RUN set -eux; \
+    if [ "$INSTALL_XDEBUG" = "true" ]; then \
+        pecl install xdebug && docker-php-ext-enable xdebug; \
+    fi; \
+    if [ "$INSTALL_IMAGICK" = "true" ]; then \
+        pecl install imagick-3.7.0 && docker-php-ext-enable imagick; \
+    fi
 
 RUN adduser --disabled-password --gecos "" app
 USER app

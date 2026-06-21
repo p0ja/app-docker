@@ -1,13 +1,17 @@
 # app-docker
 
 ## Overview
-This repository provides a local Docker-based development environment for a PHP application using:
+This repository is a reusable local Docker starter for PHP web applications.
+
+Default services:
 - **web**: Nginx
 - **php**: custom PHP-FPM image
-- **mysql**: MariaDB
-- **redis**: Redis cache/session store
-- **adminer**: lightweight database administration UI
-- **mailpit**: local SMTP catcher and mail UI
+
+Optional services via Docker Compose profiles:
+- **mysql** (`db`): MariaDB database
+- **redis** (`cache`): Redis cache/session store
+- **mailpit** (`mail`, `tools`): local SMTP catcher and mail UI
+- **adminer** (`tools`): lightweight database administration UI
 
 ## Architecture
 
@@ -20,25 +24,40 @@ WEB_PORT -> nginx (web)
               v
            php-fpm (php)
             |      \
-            |       +--> Redis (redis)
+            |       +--> Redis (redis, optional)
             |
-            +----------> MariaDB (mysql) <- MYSQL_PORT
+            +----------> MariaDB (mysql, optional)
             |
-            +----------> Mailpit SMTP (mailpit) <- MAILPIT_SMTP_PORT
+            +----------> Mailpit SMTP (mailpit, optional)
 
-Adminer UI  <- ADMINER_PORT
-Mailpit UI  <- MAILPIT_UI_PORT
+Adminer UI  <- ADMINER_PORT (optional)
+Mailpit UI  <- MAILPIT_UI_PORT (optional)
 ```
 
-Service flow:
-1. The browser connects to the `web` service through `WEB_PORT`.
-2. Nginx serves static files and forwards PHP requests to the `php` service.
-3. The `php` service runs the application code from `./app`.
-4. The application connects to `mysql` using `DB_HOST=mysql`.
-5. The application can use `redis` using `REDIS_HOST=redis`.
-6. The application can send SMTP mail to `mailpit` using `SMTP_HOST=mailpit`.
-7. MariaDB stores persistent data in the `mysql_data` named volume.
-8. Adminer provides a local DB UI and Mailpit provides a local mail UI.
+## Compose profiles
+Start only the base web/PHP stack:
+
+```bash
+docker compose up -d --build
+```
+
+Add MariaDB:
+
+```bash
+docker compose --profile db up -d --build
+```
+
+Add MariaDB + Redis + tools:
+
+```bash
+docker compose --profile db --profile cache --profile tools up -d --build
+```
+
+Add everything including SMTP testing:
+
+```bash
+docker compose --profile db --profile cache --profile mail --profile tools up -d --build
+```
 
 ## Quick reset and rebuild
 
@@ -48,7 +67,7 @@ Use this sequence to test the full stack from a clean local state:
 cp .env-dist .env
 docker compose down -v
 docker compose build --no-cache
-docker compose up -d
+docker compose --profile db --profile cache --profile mail --profile tools up -d
 docker compose ps
 docker compose logs --tail=100 web php mysql redis adminer mailpit
 docker compose config
@@ -63,20 +82,20 @@ Copy the template and adjust values if needed:
 cp .env-dist .env
 ```
 
-Check these values in `.env`:
+Important variables:
 - `WEB_PORT`
+- `SERVER_NAME`
+- `APP_DOCUMENT_ROOT`
 - `MYSQL_PORT`
 - `REDIS_PORT`
 - `ADMINER_PORT`
 - `MAILPIT_SMTP_PORT`
 - `MAILPIT_UI_PORT`
-- `DB_NAME`
-- `DB_USER`
-- `DB_PASS`
-- `MYSQL_ROOT_PASSWORD`
+- `INSTALL_XDEBUG`
+- `INSTALL_IMAGICK`
 
 ### 2. Verify ports are free
-Make sure these host ports are available:
+Common defaults:
 - web: `8888`
 - mysql: `3325`
 - redis: `6379`
@@ -84,84 +103,29 @@ Make sure these host ports are available:
 - mailpit smtp: `1025`
 - mailpit ui: `8025`
 
-If needed, change them in `.env`.
-
-### 3. Start clean if you used an older setup
-Because the database volume setup changed, a clean start is often safest:
-
-```bash
-docker compose down -v
-```
-
-### 4. Start the stack
-```bash
-docker compose up -d --build
-```
-
-### 5. Confirm containers are running
-```bash
-docker compose ps
-```
-
-Expected services:
-- `web`
-- `php`
-- `mysql`
-- `redis`
-- `adminer`
-- `mailpit`
-
-### 6. Check service startup
-```bash
-docker compose logs mysql redis mailpit
-```
-
-Look for startup completion and no authentication or init-script errors.
-
-### 7. Open the app and dev tools
-App:
+### 3. App layout assumption
+The default Nginx document root is:
 
 ```text
-http://localhost:8888
+/app/public
 ```
 
-Adminer:
+For projects with a different public directory, change:
+- `APP_DOCUMENT_ROOT` in `.env`
 
-```text
-http://localhost:8080
-```
+### 4. Open dev tools when enabled
+- App: `http://localhost:8888`
+- Adminer: `http://localhost:8080`
+- Mailpit: `http://localhost:8025`
 
-Mailpit:
-
-```text
-http://localhost:8025
-```
-
-If you changed ports in `.env`, use those values instead.
-
-### 8. Check app files are mounted
-```bash
-docker compose exec php ls -la /app
-docker compose exec web ls -la /app
-```
-
-### 9. Check DB and service variables inside PHP container
-```bash
-docker compose exec php env | grep -E 'DB_|REDIS_|SMTP_'
-```
-
-Expected values should include:
-- `DB_HOST=mysql`
-- `REDIS_HOST=redis`
-- `SMTP_HOST=mailpit`
-- your configured DB name/user/password
-
-### 10. Check rendered Compose config
-```bash
-docker compose config
-```
-
-This shows the final configuration after `.env` substitution.
+## Reusing this starter for a new project
+1. Copy your application into `./app`.
+2. Copy `.env-dist` to `.env`.
+3. Adjust `APP_DOCUMENT_ROOT` if your app does not use `/public`.
+4. Enable only the profiles you need.
+5. Enable optional PHP features with:
+   - `INSTALL_XDEBUG=true`
+   - `INSTALL_IMAGICK=true`
 
 ## Documentation
 - `docs/project-context.md` — persistent project knowledge and technical notes

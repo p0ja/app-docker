@@ -2,80 +2,61 @@
 
 ## Quick troubleshooting commands
 
+Base stack only:
+
 ```bash
 docker compose ps
-docker compose logs --tail=100 web php mysql redis adminer mailpit
-docker compose exec php env | grep -E 'DB_|REDIS_|SMTP_'
+docker compose logs --tail=100 web php
 docker compose exec php ls -la /app
-docker compose exec web ls -la /app
 docker compose config
 ```
 
-## Database initialization scripts
-Files in `./docker/db` mounted to `/docker-entrypoint-initdb.d` run only on first database initialization.
-
-If they did not run:
+Full stack with optional services enabled:
 
 ```bash
-docker compose down -v
-docker compose up -d --build
+docker compose --profile db --profile cache --profile mail --profile tools ps
+docker compose --profile db --profile cache --profile mail --profile tools logs --tail=100 web php mysql redis adminer mailpit
+docker compose exec php env | grep -E 'DB_|REDIS_|SMTP_'
 ```
 
 ## Common issues
 
-### Port already allocated
-Change one of these in `.env` if needed:
-- `WEB_PORT`
-- `MYSQL_PORT`
-- `REDIS_PORT`
-- `ADMINER_PORT`
-- `MAILPIT_SMTP_PORT`
-- `MAILPIT_UI_PORT`
-
-### MySQL auth fails
-Old DB volume data may still exist. Reset with:
-
-```bash
-docker compose down -v
-docker compose up -d --build
-```
+### Nginx returns an error page or 502
+Check:
+- `docker compose logs web php`
+- nginx template in `docker/conf.d/nginx.conf.template`
+- whether `APP_DOCUMENT_ROOT` matches the actual app public directory
+- whether PHP is running correctly
 
 ### App cannot connect to DB
-Check:
+If using the `db` profile, check:
+- `DB_HOST=mysql`
+- `docker compose --profile db logs mysql`
 - `.env`
 - `docker compose config`
-- `docker compose logs php mysql`
-- whether the app is using `DB_HOST=mysql`
 
 ### App cannot connect to Redis
-Check:
+If using the `cache` profile, check:
 - `REDIS_HOST=redis`
 - `REDIS_PORT=6379`
-- `docker compose logs redis`
-- whether the PHP app actually has Redis client support configured
+- `docker compose --profile cache logs redis`
 
 ### Email is not visible in Mailpit
-Check:
+If using the `mail` profile, check:
 - `SMTP_HOST=mailpit`
 - `SMTP_PORT=1025`
-- `docker compose logs mailpit`
+- `docker compose --profile mail logs mailpit`
 - Mailpit UI at `http://localhost:8025`
 
 ### Adminer cannot log in
-Try:
+If using the `tools` profile, try:
 - server: `mysql`
 - username: value of `MYSQL_USER`
 - password: value of `MYSQL_PASSWORD`
 - database: value of `MYSQL_DATABASE`
 
-### Nginx returns an error page or 502
-Check:
-- `docker compose logs web php`
-- nginx config in `./docker/conf.d`
-- whether PHP is running correctly
-
 ### PHP build fails
-If the PHP image build fails:
-- rebuild with `docker compose build --no-cache`
-- inspect PECL extension output for `imagick` or `xdebug`
-- verify package names still match the Debian base image used by `docker/php/Dockerfile`
+Check:
+- whether `INSTALL_XDEBUG` or `INSTALL_IMAGICK` is enabled
+- `docker compose build --no-cache`
+- PECL output for failing optional extensions

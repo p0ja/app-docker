@@ -1,15 +1,24 @@
 # Project context
 
 ## Stack overview
-This repository provides a local Docker-based development environment for a PHP application.
+This repository is intended to be reusable as a starter for future PHP web application projects.
 
-Services:
+Base services:
 - `web`: Nginx serving the app on the host port defined by `WEB_PORT`
 - `php`: custom PHP-FPM image built from `docker/php/Dockerfile`
-- `mysql`: MariaDB database on the host port defined by `MYSQL_PORT`
-- `redis`: Redis for cache, sessions, or queue-related local development needs
-- `adminer`: lightweight database administration UI for local inspection
-- `mailpit`: local SMTP catcher and email preview UI
+
+Optional services via Docker Compose profiles:
+- `mysql` (`db`): MariaDB database
+- `redis` (`cache`): Redis for cache, sessions, or queues
+- `mailpit` (`mail`, `tools`): local SMTP catcher and email preview UI
+- `adminer` (`tools`): lightweight database administration UI
+
+## Reusability strategy
+This repo is designed to be adaptable across different PHP applications by:
+- keeping the base stack minimal (`web` + `php`)
+- making extra dev services optional through Compose profiles
+- making the Nginx document root configurable with `APP_DOCUMENT_ROOT`
+- making optional PHP extensions configurable through build args and `.env`
 
 ## Architecture and request flow
 
@@ -22,25 +31,15 @@ WEB_PORT -> nginx (web)
               v
            php-fpm (php)
             |      \
-            |       +--> Redis (redis)
+            |       +--> Redis (optional, cache profile)
             |
-            +----------> MariaDB (mysql)
+            +----------> MariaDB (optional, db profile)
             |
-            +----------> Mailpit SMTP (mailpit)
+            +----------> Mailpit SMTP (optional, mail profile)
 
-Adminer UI <- ADMINER_PORT
-Mailpit UI <- MAILPIT_UI_PORT
+Adminer UI <- ADMINER_PORT (optional, tools profile)
+Mailpit UI <- MAILPIT_UI_PORT (optional, tools/mail profile)
 ```
-
-Request/data flow:
-1. Requests enter through `WEB_PORT` on the host.
-2. Nginx handles HTTP traffic and forwards PHP execution to the `php` container.
-3. The PHP container runs the app mounted from `./app`.
-4. Database connections should target `DB_HOST=mysql` on the internal Docker network.
-5. Redis connections should target `REDIS_HOST=redis`.
-6. Outgoing local SMTP should target `SMTP_HOST=mailpit` and `SMTP_PORT=1025`.
-7. MariaDB data persists in the `mysql_data` named volume.
-8. Adminer is available for DB inspection and Mailpit is available for local email inspection.
 
 ## Current image versions
 - Nginx: `nginx:1.28-alpine`
@@ -48,7 +47,7 @@ Request/data flow:
 - MariaDB: `mariadb:11.4`
 - Redis: `redis:7-alpine`
 - Adminer: `adminer:4`
-- Mailpit: `axllent/mailpit:latest`
+- Mailpit: `axllent/mailpit:v1.21`
 
 ## Environment variables
 The Compose setup reads values from `.env`.
@@ -56,8 +55,14 @@ The Compose setup reads values from `.env`.
 Template file:
 - `.env-dist`
 
-Main variables:
+Core variables:
 - `WEB_PORT`
+- `SERVER_NAME`
+- `APP_DOCUMENT_ROOT`
+- `INSTALL_XDEBUG`
+- `INSTALL_IMAGICK`
+
+Optional-service variables:
 - `MYSQL_PORT`
 - `REDIS_HOST`
 - `REDIS_PORT`
@@ -76,11 +81,17 @@ Main variables:
 - `MYSQL_DATABASE`
 
 ## Local development workflow
-Initial setup:
+Base stack only:
 
 ```bash
 cp .env-dist .env
 docker compose up -d --build
+```
+
+Full stack:
+
+```bash
+docker compose --profile db --profile cache --profile mail --profile tools up -d --build
 ```
 
 Clean rebuild:
@@ -88,9 +99,7 @@ Clean rebuild:
 ```bash
 docker compose down -v
 docker compose build --no-cache
-docker compose up -d
-docker compose ps
-docker compose logs --tail=100 web php mysql redis adminer mailpit
+docker compose --profile db --profile cache --profile mail --profile tools up -d
 ```
 
 Using the Makefile:
@@ -98,6 +107,7 @@ Using the Makefile:
 ```bash
 make build
 make up
+make full-up
 make logs
 make reset
 ```
@@ -115,21 +125,19 @@ docker compose down -v
 ## Important implementation notes
 - `docker-compose.yml` uses environment-variable substitution with fallback defaults.
 - Docker Compose auto-loads `.env`; `.env-dist` is only a template and should be copied to `.env`.
-- MariaDB init scripts mounted from `./docker/db` run only on first DB initialization.
-- PHP image includes `pdo_mysql`, `mysqli`, `bcmath`, `exif`, `gd`, `intl`, `zip`, `xdebug`, and `imagick`.
-- Redis, Adminer, and Mailpit are provided for local development convenience and may not correspond to production services.
+- Nginx config is templated through `docker/conf.d/nginx.conf.template`.
+- The default document root is `/app/public`, but it can be changed with `APP_DOCUMENT_ROOT`.
+- PHP always includes `pdo`, `pdo_mysql`, `mysqli`, `bcmath`, `exif`, `gd`, `intl`, and `zip`.
+- `xdebug` and `imagick` are optional and controlled by build args.
+- Redis, Adminer, and Mailpit are development conveniences and not required for every project.
 
 ## Known caveats
+- Projects with unusual routing or non-front-controller layouts may still need a custom Nginx template.
 - MariaDB version upgrades may require a local volume reset during development.
-- PECL extension builds, especially `imagick` or `xdebug`, may occasionally fail if upstream dependencies change.
-- If Nginx returns `502`, check both `web` and `php` logs and verify Nginx config in `./docker/conf.d`.
-- Mailpit uses `latest`, so if you want stricter reproducibility later, pin it to a specific version.
-
-## Recommended troubleshooting commands
-See `docs/troubleshooting.md` for deeper troubleshooting steps.
+- Optional PECL extension builds may fail if upstream dependencies change.
 
 ## Completed improvements
-- Added a short architecture and service flow description.
-- Added a `Makefile` with common Docker commands.
-- Split quick-start content in `README.md` from deeper troubleshooting notes in `docs/troubleshooting.md`.
-- Added Redis, Adminer, and Mailpit for richer local PHP development workflows.
+- Converted the stack toward reusable-starter behavior.
+- Made extra dev services optional through Compose profiles.
+- Replaced fixed Nginx config with a configurable template.
+- Simplified the PHP image baseline and made `xdebug`/`imagick` optional.

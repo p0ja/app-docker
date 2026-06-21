@@ -1,13 +1,15 @@
-.PHONY: help up build rebuild down reset logs ps config shell-php shell-web mysql-logs redis-logs mail-logs
+.PHONY: help up full-up build rebuild down reset logs full-logs ps config shell-php shell-web mysql-logs redis-logs mail-logs
 
 help:
 	@echo "Available targets:"
-	@echo "  up         - Start containers in detached mode"
+	@echo "  up         - Start base web/php stack"
+	@echo "  full-up    - Start full stack with db, cache, mail, and tools profiles"
 	@echo "  build      - Build images"
-	@echo "  rebuild    - Rebuild images without cache and restart"
+	@echo "  rebuild    - Rebuild images without cache and restart base stack"
 	@echo "  down       - Stop containers"
-	@echo "  reset      - Stop containers, remove volumes, rebuild, and start"
-	@echo "  logs       - Show recent logs for all app services"
+	@echo "  reset      - Stop containers, remove volumes, rebuild, and start full stack"
+	@echo "  logs       - Show recent logs for base stack"
+	@echo "  full-logs  - Show recent logs for full stack"
 	@echo "  ps         - Show container status"
 	@echo "  config     - Show rendered docker compose config"
 	@echo "  shell-php  - Open a shell in the php container"
@@ -18,6 +20,9 @@ help:
 
 up:
 	docker compose up -d
+
+full-up:
+	docker compose --profile db --profile cache --profile mail --profile tools up -d
 
 build:
 	docker compose build
@@ -32,10 +37,13 @@ down:
 reset:
 	docker compose down -v
 	docker compose build --no-cache
-	docker compose up -d
+	docker compose --profile db --profile cache --profile mail --profile tools up -d
 
 logs:
-	docker compose logs --tail=100 web php mysql redis adminer mailpit
+	docker compose logs --tail=100 web php
+
+full-logs:
+	docker compose --profile db --profile cache --profile mail --profile tools logs --tail=100 web php mysql redis adminer mailpit
 
 ps:
 	docker compose ps
@@ -50,10 +58,10 @@ shell-web:
 	docker compose exec web sh
 
 mysql-logs:
-	docker compose logs mysql
+	docker compose --profile db logs mysql
 
 redis-logs:
-	docker compose logs redis
+	docker compose --profile cache logs redis
 
 mail-logs:
-	docker compose logs mailpit
+	docker compose --profile mail logs mailpit
