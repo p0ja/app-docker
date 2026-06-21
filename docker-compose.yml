@@ -1,6 +1,6 @@
 services:
   web:
-    image: nginx:1.25.2-alpine3.18
+    image: nginx:1.28-alpine
     ports:
       - "${WEB_PORT:-8888}:80"
     volumes:
@@ -30,7 +30,7 @@ services:
       - appnamenet
 
   mysql:
-    image: mariadb:11.1.2-jammy
+    image: mariadb:11.4
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
       MYSQL_USER: ${MYSQL_USER:-user}
