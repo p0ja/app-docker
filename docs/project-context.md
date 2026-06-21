@@ -8,6 +8,28 @@ Services:
 - `php`: custom PHP-FPM image built from `docker/php/Dockerfile`
 - `mysql`: MariaDB database on the host port defined by `MYSQL_PORT`
 
+## Architecture and request flow
+
+```text
+Browser
+  |
+  v
+WEB_PORT -> nginx (web)
+              |
+              v
+           php-fpm (php)
+              |
+              v
+          MariaDB (mysql)
+```
+
+Request/data flow:
+1. Requests enter through `WEB_PORT` on the host.
+2. Nginx handles HTTP traffic and forwards PHP execution to the `php` container.
+3. The PHP container runs the app mounted from `./app`.
+4. Database connections should target `DB_HOST=mysql` on the internal Docker network.
+5. MariaDB data persists in the `mysql_data` named volume.
+
 ## Current image versions
 - Nginx: `nginx:1.28-alpine`
 - PHP base image: `php:8.3-fpm-bookworm`
@@ -49,6 +71,15 @@ docker compose ps
 docker compose logs --tail=100 web php mysql
 ```
 
+Using the Makefile:
+
+```bash
+make build
+make up
+make logs
+make reset
+```
+
 ## Persistent storage
 MariaDB data is stored in the named Docker volume:
 - `mysql_data`
@@ -71,16 +102,9 @@ docker compose down -v
 - If Nginx returns `502`, check both `web` and `php` logs and verify Nginx config in `./docker/conf.d`.
 
 ## Recommended troubleshooting commands
-```bash
-docker compose ps
-docker compose logs --tail=100 web php mysql
-docker compose exec php env | grep DB_
-docker compose exec php ls -la /app
-docker compose exec web ls -la /app
-docker compose config
-```
+See `docs/troubleshooting.md` for deeper troubleshooting steps.
 
-## Suggested next improvements
-- Add a short architecture diagram or service flow description.
-- Add a `Makefile` with common commands such as `up`, `down`, `reset`, and `logs`.
-- Optionally split README quick-start content from deeper troubleshooting docs.
+## Completed improvements
+- Added a short architecture and service flow description.
+- Added a `Makefile` with common Docker commands.
+- Split quick-start content in `README.md` from deeper troubleshooting notes in `docs/troubleshooting.md`.

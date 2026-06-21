@@ -1,5 +1,33 @@
 # app-docker
 
+## Overview
+This repository provides a local Docker-based development environment for a PHP application using:
+- **web**: Nginx
+- **php**: custom PHP-FPM image
+- **mysql**: MariaDB
+
+## Architecture
+
+```text
+Browser
+  |
+  v
+WEB_PORT -> nginx (web)
+              |
+              v
+           php-fpm (php)
+              |
+              v
+          MariaDB (mysql) <- MYSQL_PORT (optional host access)
+```
+
+Service flow:
+1. The browser connects to the `web` service through `WEB_PORT`.
+2. Nginx serves static files and forwards PHP requests to the `php` service.
+3. The `php` service runs the application code from `./app`.
+4. The application connects to the `mysql` service using `DB_HOST=mysql`.
+5. MariaDB stores persistent data in the `mysql_data` named volume.
+
 ## Quick reset and rebuild
 
 Use this sequence to test the full stack from a clean local state:
@@ -91,55 +119,13 @@ Expected values should include:
 - `DB_HOST=mysql`
 - your configured DB name/user/password
 
-### 10. Confirm init scripts ran
-Files in `./docker/db` mounted to `/docker-entrypoint-initdb.d` run only on first database initialization.
-
-If they did not run:
-
-```bash
-docker compose down -v
-docker compose up -d --build
-```
-
-### 11. Check rendered Compose config
+### 10. Check rendered Compose config
 ```bash
 docker compose config
 ```
 
 This shows the final configuration after `.env` substitution.
 
-## Quick troubleshooting commands
-
-```bash
-docker compose ps
-docker compose logs --tail=100 web php mysql
-docker compose exec php env | grep DB_
-docker compose exec php ls -la /app
-docker compose exec web ls -la /app
-docker compose config
-```
-
-## Common issues
-
-### Port already allocated
-Change `WEB_PORT` or `MYSQL_PORT` in `.env`.
-
-### MySQL auth fails
-Old DB volume data may still exist. Reset with:
-
-```bash
-docker compose down -v
-docker compose up -d --build
-```
-
-### App cannot connect to DB
-Check:
-- `.env`
-- `docker compose config`
-- `docker compose logs php mysql`
-
-### Nginx returns an error page or 502
-Check:
-- `docker compose logs web php`
-- nginx config in `./docker/conf.d`
-- whether PHP is running correctly
+## Documentation
+- `docs/project-context.md` — persistent project knowledge and technical notes
+- `docs/troubleshooting.md` — deeper troubleshooting steps and common fixes
