@@ -1,0 +1,5 @@
+# Local environment overrides
+.env
+
+# Persistent database data
+mysql_data/
